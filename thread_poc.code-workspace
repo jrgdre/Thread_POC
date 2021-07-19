@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "00_Common"
+		},
+		{
+			"path": "01_Synchronize"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}

@@ -1,0 +1,117 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "2.0.0",
+	"options": {
+		"cwd": "${workspaceFolder}"
+	},
+	"tasks": [
+		{
+			"label": "test",
+			"type": "shell",
+			"windows": {
+				"command": "${workspaceFolder}/bin/win64/synchronize",
+				"args": ["-q", "--log=debug", "-i=${workspaceFolder}/bin/win64/SPEC.ini"]
+			},
+			"linux": {
+				"command": "mcg",
+				"args": ["-q", "--log=trace", "-i=${workspaceFolder}/bin/win64/SPEC.ini"]
+			},
+			"dependsOn": ["x64 debug"],
+			"problemMatcher": [
+				{
+					"owner": "mcg",
+					"fileLocation": [
+						"absolute"
+					],
+					"pattern": [
+						{
+							"regexp": "^\\d+\\s+\\d+\\s+\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}.\\d{3}\\s+(\\w+)\\s+([\\w:\\\\\\/\\.]+)\\((\\d+):(\\d+)\\.{2}(\\d+)\\)\\s+(.*)",
+							"severity": 1,
+							"file": 2,
+							"line": 3,
+							"column": 4,
+							"endColumn": 5,
+							"message": 6
+						}
+					]
+				}
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
+		},
+		{
+			// Windows: Assumes "Command Prompt" to be the default shell
+			"label": "clean",
+			"type": "shell",
+			"windows": {
+				"command": "del",
+				"args": ["/s", "/q","*.o", "*.ppu"]
+			},
+			"linux": {
+				"command": "rm",
+				"args": ["-r", "-f", "*.o", "*.ppu"]
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "x64 debug",
+			"type": "shell",
+			"problemMatcher": [
+				{
+					"owner": "fpc",
+					"fileLocation": [
+						"relative",
+						"${workspaceFolder}"
+					],
+					"pattern": [
+						{
+							"regexp": "^(Compiling)(\\s)(.*)",
+							"file": 3
+						},
+						{
+							"regexp": "^([a-zA-Z_-]+\\.[a-zA-Z_-]+)(\\()(\\d+)(\\,)(\\d+)(\\) )([a-zA-Z]+)(: )(.*)",
+							"line": 3,
+							"column": 5,
+							"severity": 7,
+							"message": 9,
+							"loop": true
+						}
+					]
+				}
+			],
+			"windows": {
+				"command": "ppcrossx64",
+				"args": [
+					"-gw2",
+					"-godwarfsets",
+					"-gostabsabsincludes",
+					"-O-",
+					"-gp", "-gh", "-gl",
+					"${workspaceRoot}\\synchronize.pas",
+					"-FE${workspaceRoot}\\bin\\win64",
+					"-FU${workspaceRoot}\\obj\\win64"
+				]
+			},
+			"linux": {
+				"command": "fpc",
+				"args": [
+					"-gw3",
+					"-godwarfsets",
+					"-O-",
+					"-gp", "-gh", "-gl",
+					"${workspaceRoot}/synchronize.pas",
+					"-FE${workspaceRoot}/bin/linux64",
+					"-FU${workspaceRoot}/obj/linux64"
+				]
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"dependsOn":["clean"]
+		}
+	]
+  }

@@ -49,12 +49,12 @@ How all comes together can be found in the set-up sequence of the main routine.
 
 This is a report of a sample run. The fields are:
 
- #1 time of reporting
- #2 ThreadID of thread reporting
- #3 identification text
- #4 coffee drinker's CustomerID
- #5 coffee drinker's ThreadID
- #6 message
+ 1. time of reporting
+ 2. ThreadID of thread reporting
+ 3. identification text
+ 4. coffee drinker's CustomerID
+ 5. coffee drinker's ThreadID
+ 6. message
 
 ```
 running...

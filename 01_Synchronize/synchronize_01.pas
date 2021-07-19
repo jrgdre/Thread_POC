@@ -21,10 +21,11 @@
 	@version
 		1.0.0 2021-07-18 jrgdre, initial release
 }
-program synchronize;
+program synchronize_01;
 {$mode Delphi}
 
 uses
+	classes,
 	sysutils,
 {$ifdef unix}
 	cthreads,
@@ -35,30 +36,54 @@ uses
 	U_Producers in '..\00_Common\U_Producers.pas';
 
 const
-	CNT_COFFEE_DRINKERS = 20;
+	CNT_COFFEE_DRINKERS = 10;
+
 var
 	coffeeDrinker : TCoffeeDrinker;
 	coffeeDrinkers: Array[1..CNT_COFFEE_DRINKERS] of TCoffeeDrinker;
 	coffeeMaker   : TCoffeeMaker;
-	i: NativeUInt;
+	i             : NativeUInt;
+	reports       : TStringList;
+
+procedure OnReport(const report: String);
 begin
+	reports.Add(report);
+end;
+
+begin
+	reports     := TStringList .Create;
 	coffeeMaker := TCoffeeMaker.Create;
 	try
-		// setup
+		// set-up
 		for i := Low(coffeeDrinkers) to High(coffeeDrinkers) do begin
-			coffeeDrinkers[i] := TCoffeeDrinker.Create(True);
+			coffeeDrinkers[i]               := TCoffeeDrinker.Create(True);
+			coffeeDrinkers[i].ConsumerID    := i;
 			coffeeDrinkers[i].OnIWantCoffee := coffeeMaker.MakeCoffee;
+			coffeeDrinkers[i].OnReport      := OnReport;
 		end;
-		// everyone starts to run for coffee
+
+		// run
+		WriteLn('running...');
 		for coffeeDrinker in coffeeDrinkers do
 			coffeeDrinker.Start;
-		// meeting has to wait for everyone to be finished
+
+		// shut down
 		for coffeeDrinker in coffeeDrinkers do
 			coffeeDrinker.WaitFor;
+
+		// report
+		reports.Sort;
+		for i := 0 to reports.Count-1 do
+			WriteLn(reports[i]);
+
 	finally
 		for i := Low(coffeeDrinkers) to High(coffeeDrinkers) do
 			FreeAndNil(coffeeDrinkers[i]);
+
 		if Assigned(coffeeMaker) then
 			FreeAndNil(coffeeMaker);
+
+		if Assigned(reports) then
+			FreeAndNil(reports);
 	end;
 end.

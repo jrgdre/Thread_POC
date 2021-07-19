@@ -44,6 +44,10 @@ type
 	}
 	TOnIWantCoffee = procedure(const typeOfCoffee: TCoffee) of object;
 
+	{! Prototype of a report event handler procedure.
+	}
+	TOnReport = procedure(const report: String);
+
 	{!	Archetype of a coffee drinker.
 
 		Drinking coffee enables a coffee drinker to work independently,
@@ -51,25 +55,30 @@ type
 	}
 	TCoffeeDrinker = class(TThread)
 	private
-		FThreadID     : TThreadID;
-		FCoffee       : TCoffee;
+		FConsumerID   : NativeUInt;
+		FThreadID     : TThreadID      ;
+		FCoffee       : TCoffee        ;
 		FStatus       : TConsumerStatus;
-		FTickEnd      : QWord;
-		FTickStart    : QWord;
-		FOnIWantCoffee: TOnIWantCoffee;
+		FEnd          : TDateTime      ;
+		FStart        : TDateTime      ;
+		FOnIWantCoffee: TOnIWantCoffee ;
+		FOnReport     : TOnReport      ;
 	protected
 		procedure GrabCoffee ; overload;
 		procedure DrinkCoffee; overload;
-		procedure ReportTime; overload;
+		procedure ReportTime ; overload;
 	public
 		procedure Execute; override;  //!< Where the work is done.
 		//
+		property ConsumerID   : NativeUInt read FConsumerID write FConsumerID;
 		property OnIWantCoffee: TOnIWantCoffee write FOnIWantCoffee;
+		property OnReport     : TOnReport      write FOnReport;
 	end;
 
 implementation
 
 uses
+	dateutils,
 	sysutils;
 
 { TCoffeeDrinker }
@@ -85,28 +94,22 @@ uses
 }
 procedure TCoffeeDrinker.Execute;
 begin
-	FThreadID  := GetThreadID;
+	FThreadID := GetThreadID;
 
-	// randomly select the type of coffee we want this time,
-	// from the list of coffees known to us
-	FCoffee    := TCoffee(Random(Ord(High(TCoffee))+1));
+	// It takes the drinker between 0..999ms to realize that he wants a coffee.
+	Sleep(Random(1000));
 
-	FStatus    := csGrabbing;
-	FTickStart := GetTickCount64;
+	// He now randomly select the type of coffee he wants, from the list of
+	// coffees. The Random() call itself has different runtimes on different
+	// calls.
+	FCoffee := TCoffee(Random(Ord(High(TCoffee))+1));
 
-	Synchronize(GrabCoffee);    // <---- coffee machine is shared
+	FStart := Now;
+	Synchronize(ReportTime); // <-- report time when he made up his mind
 
-	FTickEnd   := GetTickCount64;
-	FStatus    := csHaving;
-	Synchronize(ReportTime);
+	Synchronize(GrabCoffee); // <-- coffee machine is shared
+	DrinkCoffee;             // <-- I don't need any help to drink my coffee
 
-	FTickStart := GetTickCount64;
-
-	DrinkCoffee;                // <-- don't need anyone to drink my coffee
-
-	FTickEnd   := GetTickCount64;
-	FStatus    := csDone;
-	Synchronize(ReportTime);
 end;
 
 {!	Grab a coffee.
@@ -120,15 +123,21 @@ end;
 }
 procedure TCoffeeDrinker.GrabCoffee;
 begin
+	FStatus := csGrabbing;
+	FStart  := Now;
+
 	// First we have to make sure a coffe maker is registered with us to provide
 	// us with coffee, whenever we want one.
 
 	// If so, we tell that one that we now want some coffee and the kind of
 	// coffee we want.
 
-	if Assigned(FOnIWantCoffee) then begin
+	if Assigned(FOnIWantCoffee) then
 		FOnIWantCoffee(FCoffee);
-	end;
+
+	FEnd    := Now;
+	FStatus := csHaving;	// Not getting one is not even an option!
+	Synchronize(ReportTime);
 end;
 
 {!	Drink the coffee.
@@ -140,37 +149,76 @@ end;
 }
 procedure TCoffeeDrinker.DrinkCoffee;
 begin
-	Sleep(30+Random(70));
+	FStart  := Now;
+
+	Sleep(30+Random(71));
+
+	FEnd    := Now;
+	FStatus := csDone;
+	Synchronize(ReportTime);
 end;
 
-{!	Report the time it took to grab a coffee or to drink the coffee.
+{!	Report the time it took to reach different stages.
 
-	Even so it is poor design in general, not to make things more confusing
-	this method writes directly to `StdOut`.
+	This is a more tricky one to understand.
 
-	But `StdOut`is a shared ressource that can only be safely accessed by the
-	main thread.
+	At a glance it looks like there is nothing dangerous in here. We only access
+	member variables. What can possibly go wrong, right?
+
+	Well the trap lies in the function call `FOnReport(str)`.
+
+	The implementation of this function is provided by some outside source, we
+	have no control over. It can contain who knows what.
+
+	And for a report function the chances are actually pretty high, that it
+	will write to some shared resource.
 
 	So any call to this method has to be made through the
-	`TThread.Synchronize()`	method, to  make sure it is the main thread that is
-	accessing `StdOut`.
+	`TThread.Synchronize()`	method, to  make sure that the main thread can keep
+	things in order.
 
 	Also, during a call made using `Synchronize()` this thread is halted,
-	waiting for `Synchronize()`to return. So it is safe for the method to not
-	only access `StdOut`, but also any member variable of the thread object.
+	waiting for `Synchronize()`to return. So it is safe for the method to access
+	any member variable, even so it runs in the context of the main thread.
 }
 procedure TCoffeeDrinker.ReportTime;
+var
+	str: String;
 begin
+	if not Assigned(FOnReport) then
+		Exit;
 	case FStatus of
-		csHaving: Writeln(Format(
-			'%d reporting for coffee drinker %d: It took me %dms to get my %s.',
-			[GetThreadID, FThreadID, (FTickEnd-FTickStart), StrCoffee[FCoffee]]
-		));
-		csDone: Writeln(Format(
-			'%d reporting for coffee drinker %d: It took me %dms to drink my %s.',
-			[GetThreadID, FThreadID, (FTickEnd-FTickStart), StrCoffee[FCoffee]]
-		));
+		csWanting:
+			str := Format(
+				'%s %4d reporting for coffee drinker %2d (%4d): I want %s.',
+				[FormatDateTime('hh:nn:ss.zzz', FStart),
+				 GetThreadID,
+				 FConsumerID,
+				 FThreadID,
+				 StrCoffee[FCoffee]]
+			);
+		csHaving:
+			str := Format(
+				'%s %4d reporting for coffee drinker %2d (%4d): It took me %4dms to get my %s.',
+				[FormatDateTime('hh:nn:ss.zzz', FEnd),
+				 GetThreadID,
+				 FConsumerID,
+				 FThreadID,
+				 MilliSecondsBetween(FStart, FEnd),
+				 StrCoffee[FCoffee]]
+			);
+		csDone:
+			str := Format(
+				'%s %4d reporting for coffee drinker %2d (%4d): It took me %4dms to drink my %s.',
+				[FormatDateTime('hh:nn:ss.zzz', FEnd),
+				 GetThreadID,
+				 FConsumerID,
+				 FThreadID,
+				 MilliSecondsBetween(FStart, FEnd),
+				 StrCoffee[FCoffee]]
+			);
 	end;
+	FOnReport(str);
 end;
 
 end.

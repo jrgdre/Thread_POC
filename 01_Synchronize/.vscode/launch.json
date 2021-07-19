@@ -13,7 +13,7 @@
                 "-quiet"
             ],
             "commandsBeforeExec": [],
-            "program": "${workspaceRoot}/bin/win64/synchronize.exe",
+            "program": "${workspaceRoot}/bin/win64/synchronize_01.exe",
             "programArgs": "-q -l=trace -i=SPEC.ini -o=test",
             "preLaunchTask": "x64 debug",
             "cwd": "${workspaceRoot}/bin/win64/"
@@ -27,7 +27,7 @@
                 "-quiet"
             ],
             "commandsBeforeExec": [],
-            "program": "./bin/linux64/synchronize",
+            "program": "./bin/linux64/synchronize_01",
             "programArgs": "-i SPEC_2021_2020.ini",
             "preLaunchTask": "x64 debug",
             "cwd": "${workspaceRoot}"

@@ -90,7 +90,7 @@
 					"-gostabsabsincludes",
 					"-O-",
 					"-gp", "-gh", "-gl",
-					"${workspaceRoot}\\synchronize.pas",
+					"${workspaceRoot}\\synchronize_01.pas",
 					"-FE${workspaceRoot}\\bin\\win64",
 					"-FU${workspaceRoot}\\obj\\win64"
 				]
@@ -102,7 +102,7 @@
 					"-godwarfsets",
 					"-O-",
 					"-gp", "-gh", "-gl",
-					"${workspaceRoot}/synchronize.pas",
+					"${workspaceRoot}/synchronize_01.pas",
 					"-FE${workspaceRoot}/bin/linux64",
 					"-FU${workspaceRoot}/obj/linux64"
 				]

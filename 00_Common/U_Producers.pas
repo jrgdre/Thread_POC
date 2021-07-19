@@ -49,8 +49,8 @@ uses
 
 	Plain old object. Nothing to see here.
 
-	It takes the coffee maker between 110..140ms to make a coffe,
-	depending on the type of coffee and some random factors.
+	It takes the coffee maker between 10..21ms to make a coffe,
+	depending on the type of coffee and some random factor.
 }
 procedure TCoffeeMaker.MakeCoffee(
 	const typeOfCoffee: TCoffee
@@ -58,13 +58,12 @@ procedure TCoffeeMaker.MakeCoffee(
 var
 	ran: Integer;
 begin
-	ran := Random(10)+10;
+	ran := Random(10);
 	case typeOfCoffee of
-		cAmericano : Sleep(100+ran);
-		cCappuccino: Sleep(110+ran);
-		cEspresso  : Sleep(120+ran);
+		cAmericano : Sleep(10+ran);
+		cCappuccino: Sleep(11+ran);
+		cEspresso  : Sleep(12+ran);
 	end;
-	TThread.Yield;
 end;
 
 end.

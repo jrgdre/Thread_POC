@@ -25,12 +25,12 @@ program synchronize_01;
 {$mode Delphi}
 
 uses
-	classes,
-	sysutils,
 {$ifdef unix}
 	cthreads,
 	cmem, // the c memory manager is on some systems much faster for multi-threading
 {$endif}
+	classes,
+	sysutils,
 	U_Beverages in '..\00_Common\U_Beverages.pas',
 	U_Consumers in '..\00_Common\U_Consumers.pas',
 	U_Producers in '..\00_Common\U_Producers.pas';
